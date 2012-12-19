@@ -45,7 +45,7 @@ GetOSVersion() {
         os_VENDOR=$(lsb_release -i -s)
         os_RELEASE=$(lsb_release -r -s)
         os_UPDATE=""
-        if [[ "Debian,Ubuntu" =~ $os_VENDOR ]]; then
+        if [[ "Debian,Ubuntu,LinuxMint" =~ $os_VENDOR ]]; then
             os_PACKAGE="deb"
         elif [[ "SUSE LINUX" =~ $os_VENDOR ]]; then
             lsb_release -d -s | grep -q openSUSE
@@ -97,24 +97,185 @@ GetOSVersion() {
     export os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 }
 
-GetOSVersion
-echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME"
+# Translate the OS version values into common nomenclature
+# Sets ``DISTRO`` from the ``os_*`` values
+function GetDistro() {
+    GetOSVersion
+    if [[ "$os_VENDOR" =~ (Ubuntu) ]]; then
+        # 'Everyone' refers to Ubuntu releases by the code name adjective
+        DISTRO=$os_CODENAME
+    elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
+        # For Fedora, just use 'f' and the release
+        DISTRO="f$os_RELEASE"
+    elif [[ "$os_VENDOR" =~ (openSUSE) ]]; then
+        DISTRO="opensuse-$os_RELEASE"
+    elif [[ "$os_VENDOR" =~ (SUSE LINUX) ]]; then
+        # For SLE, also use the service pack
+        if [[ -z "$os_UPDATE" ]]; then
+            DISTRO="sle${os_RELEASE}"
+        else
+            DISTRO="sle${os_RELEASE}sp${os_UPDATE}"
+        fi
+    else
+        # Catch-all for now is Vendor + Release + Update
+        DISTRO="$os_VENDOR-$os_RELEASE.$os_UPDATE"
+    fi
+    export DISTRO
+}
+
+# Distro-agnostic function to tell if a package is installed
+# is_package_installed package [package ...]
+function is_package_installed() {
+    if [[ -z "$@" ]]; then
+        return 1
+    fi
+
+    if [[ -z "$os_PACKAGE" ]]; then
+        GetOSVersion
+    fi
+
+    if [[ "$os_PACKAGE" = "deb" ]]; then
+        dpkg -l "$@" > /dev/null
+        return $?
+    elif [[ "$os_PACKAGE" = "rpm" ]]; then
+        rpm --quiet -q "$@"
+        return $?
+    else
+        exit_distro_not_supported "finding if a package is installed"
+    fi
+}
+
+# Determine if current distribution is a Fedora-based distribution
+# (Fedora, RHEL, CentOS).
+# is_fedora
+function is_fedora {
+    if [[ -z "$os_VENDOR" ]]; then
+        GetOSVersion
+    fi
+
+    [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || [ "$os_VENDOR" = "CentOS" ]
+}
+
+# Distro-agnostic package installer
+# install_package package [package ...]
+function install_package() {
+    if is_ubuntu; then
+        [[ "$NO_UPDATE_REPOS" = "True" ]] || apt_get update
+        NO_UPDATE_REPOS=True
+
+        apt_get install "$@"
+    elif is_fedora; then
+        yum_install "$@"
+    elif is_suse; then
+        zypper_install "$@"
+    else
+        exit_distro_not_supported "installing packages"
+    fi
+}
+
+# Determine if current distribution is an Ubuntu-based distribution.
+# It will also detect non-Ubuntu but Debian-based distros; this is not an issue
+# since Debian and Ubuntu should be compatible.
+# is_ubuntu
+function is_ubuntu {
+    if [[ -z "$os_PACKAGE" ]]; then
+        GetOSVersion
+    fi
+
+    [ "$os_PACKAGE" = "deb" ]
+}
+
+# Determine if current distribution is a SUSE-based distribution
+# (openSUSE, SLE).
+# is_suse
+function is_suse {
+    if [[ -z "$os_VENDOR" ]]; then
+        GetOSVersion
+    fi
+
+    [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
+}
+
+# Exit after outputting a message about the distribution not being supported.
+# exit_distro_not_supported [optional-string-telling-what-is-missing]
+function exit_distro_not_supported {
+    if [[ -z "$DISTRO" ]]; then
+        GetDistro
+    fi
+
+    if [ $# -gt 0 ]; then
+        echo "Support for $DISTRO is incomplete: no support for $@"
+    else
+        echo "Support for $DISTRO is incomplete."
+    fi
+
+    exit 1
+}
+
+# Wrapper for ``yum`` to set proxy environment variables
+# Uses globals ``OFFLINE``, ``*_proxy`
+# yum_install package [package ...]
+function yum_install() {
+    [[ "$OFFLINE" = "True" ]] && return
+    local sudo="sudo"
+    [[ "$(id -u)" = "0" ]] && sudo="env"
+    $sudo http_proxy=$http_proxy https_proxy=$https_proxy \
+        no_proxy=$no_proxy \
+        yum install -y "$@"
+}
+
+# Wrapper for ``apt-get`` to set cache and proxy environment variables
+# Uses globals ``OFFLINE``, ``*_proxy`
+# apt_get operation package [package ...]
+function apt_get() {
+    [[ "$OFFLINE" = "True" || -z "$@" ]] && return
+    local sudo="sudo"
+    [[ "$(id -u)" = "0" ]] && sudo="env"
+    $sudo DEBIAN_FRONTEND=noninteractive \
+        http_proxy=$http_proxy https_proxy=$https_proxy \
+        no_proxy=$no_proxy \
+        apt-get --option "Dpkg::Options::=--force-confold" --assume-yes "$@"
+}
+
+# zypper wrapper to set arguments correctly
+# zypper_install package [package ...]
+function zypper_install() {
+    [[ "$OFFLINE" = "True" ]] && return
+    local sudo="sudo"
+    [[ "$(id -u)" = "0" ]] && sudo="env"
+    $sudo http_proxy=$http_proxy https_proxy=$https_proxy \
+        zypper --non-interactive install --auto-agree-with-licenses "$@"
+}
+
+GetDistro
+# echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME $DISTRO"
+echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME $DISTRO"
+
+# root access
+# vim-setup.sh is designed to be run as a non-root user but need sudo priviledge to install packages.
+if [[ $EUID -eq 0 ]]; then
+  echo "You are running this script as root."
+  is_package_installed sudo || install_package sudo
+else
+  is_package_installed sudo || die "Sudo is required. Re-run vim-setup.sh as root to setup sudo."
+fi
 
 # Save trace setting
 XTRACE=$(set +o | grep xtrace)
 set +o xtrace
 
 # Install vim
+is_package_installed vim || install_package vim
 if [[ "$os_VENDOR" =~ (CentOS) ]]; then
-  sudo yum -y install vim ctags
+  is_package_installed ctags || install_package ctags
 elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
-  sudo yum -y install vim ctags
+  is_package_installed ctags || install_package ctags
 elif [[ "$os_VENDOR" =~ (LinuxMint) ]]; then
-  sudo apt-get -y install vim exuberant-ctags
+  is_package_installed exuberant-ctags || install_package exuberant-ctags
 elif [[ "$os_VENDOR" =~ (Ubuntu) ]]; then
-  sudo apt-get -y install vim exuberant-ctags
+  is_package_installed exuberant-ctags || install_package exuberant-ctags
 elif [[ "$os_VENDOR" =~ (Debian) ]]; then
-  sudo apt-get -y install vim exuberant-ctags
+  is_package_installed exuberant-ctags || install_package exuberant-ctags
 fi
 
 # Create ~/.vim directory
@@ -124,7 +285,7 @@ fi
 
 # Install nerdtree plugin
 if [[ "$os_VENDOR" =~ (Fedora) ]]; then
-  sudo yum -y install vim-nerdtree
+  is_package_installed vim-nerdtree || install_package vim-nerdtree
 else
   if [ ! -f ~/.vim/plugin/NERD_tree.vim ]; then
     wget https://github.com/scrooloose/nerdtree/archive/master.zip -O master.zip
