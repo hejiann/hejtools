@@ -100,23 +100,27 @@ GetOSVersion() {
 GetOSVersion
 echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME"
 
-# install vim
+# Save trace setting
+XTRACE=$(set +o | grep xtrace)
+set +o xtrace
+
+# Install vim
 if [[ "$os_VENDOR" =~ (CentOS) ]]; then
   sudo yum -y install vim ctags
 elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
   sudo yum -y install vim
 elif [[ "$os_VENDOR" =~ (LinuxMint) ]]; then
-  sudo apt-get -y install vim
+  sudo apt-get -y install vim exuberant-ctags
 elif [[ "$os_VENDOR" =~ (Debian) ]]; then
   sudo apt-get -y install vim exuberant-ctags
 fi
 
-# create ~/.vim
+# Create ~/.vim directory
 if [ ! -d ~/.vim ]; then
   mkdir ~/.vim
 fi
 
-# nerdtree
+# Install nerdtree plugin
 if [[ "$os_VENDOR" =~ (Fedora) ]]; then
   sudo yum -y install vim-nerdtree
 else
@@ -129,7 +133,7 @@ else
   fi
 fi
 
-# tagbar
+# Install tagbar plugin
 if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
   wget https://github.com/majutsushi/tagbar/archive/master.zip -O master.zip
   unzip master.zip
@@ -138,7 +142,7 @@ if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
   rm master.zip
 fi
 
-# matchit
+# Install matchit plugin
 if [ ! -f ~/.vim/plugin/matchit.vim ]; then
   if [ -d /usr/share/vim/vim73 ]; then
     cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
@@ -147,11 +151,11 @@ if [ ! -f ~/.vim/plugin/matchit.vim ]; then
     cp /usr/share/vim/vim72/macros/matchit.vim ~/.vim/plugin/
     cp /usr/share/vim/vim72/macros/matchit.txt ~/.vim/doc/
   else
-    echo "Could not find the vim directory !!!"
+    echo "ERROR: Could not find the vim directory !!!"
   fi
 fi
 
-# python-mode
+# Install python-mode plugin
 if [ ! -f ~/.vim/plugin/pymode.vim ]; then
   wget https://github.com/klen/python-mode/archive/master.zip -O master.zip
   unzip master.zip
@@ -160,7 +164,7 @@ if [ ! -f ~/.vim/plugin/pymode.vim ]; then
   rm master.zip
 fi
 
-# jedi-vim
+# Install jedi-vim plugin
 if [ ! -f ~/.vim/plugin/jedi.vim ]; then
   wget https://github.com/davidhalter/jedi-vim/archive/master.zip -O master.zip
   unzip master.zip
@@ -169,7 +173,7 @@ if [ ! -f ~/.vim/plugin/jedi.vim ]; then
   rm master.zip
 fi
 
-# ~/.vimrc
+# Customize ~/.vimrc
 cat > ~/.vimrc <<EOF
 set fileencodings=ucs-bom,utf-8,gbk,default,latin1
 
@@ -205,3 +209,8 @@ let php_folding = 1
 " highlight all its matches
 set hlsearch
 EOF
+
+# Restore xtrace
+$XTRACE
+
+echo "vim-setup.sh completed in $SECONDS seconds."
