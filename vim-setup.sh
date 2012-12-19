@@ -248,14 +248,14 @@ function zypper_install() {
 }
 
 GetDistro
-# echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME $DISTRO"
-echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME $DISTRO"
+echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME $DISTRO"
 
 # root access
 # vim-setup.sh is designed to be run as a non-root user but need sudo priviledge to install packages.
 if [[ $EUID -eq 0 ]]; then
   echo "You are running this script as root."
   is_package_installed sudo || install_package sudo
+  # TODO: who am i
 else
   is_package_installed sudo || die "Sudo is required. Re-run vim-setup.sh as root to setup sudo."
 fi
