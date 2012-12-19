@@ -102,7 +102,7 @@ echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME"
 
 # install vim
 if [[ "$os_VENDOR" =~ (CentOS) ]]; then
-  sudo yum -y install vim
+  sudo yum -y install vim ctags
 elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
   sudo yum -y install vim
 elif [[ "$os_VENDOR" =~ (LinuxMint) ]]; then
@@ -140,8 +140,15 @@ fi
 
 # matchit
 if [ ! -f ~/.vim/plugin/matchit.vim ]; then
-  cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
-  cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
+  if [ -d /usr/share/vim/vim73 ]; then
+    cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
+    cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
+  elif [ -d /usr/share/vim/vim72 ]; then
+    cp /usr/share/vim/vim72/macros/matchit.vim ~/.vim/plugin/
+    cp /usr/share/vim/vim72/macros/matchit.txt ~/.vim/doc/
+  else
+    echo "Could not find the vim directory !!!"
+  fi
 fi
 
 # python-mode
