@@ -87,21 +87,31 @@ GetOSVersion() {
     export os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 }
 
+GetOSVersion
+echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME"
+
 if [ ! -d ~/.vim ]; then
   mkdir ~/.vim
 fi
 
-GetOSVersion
-echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME"
-
 # nerdtree
-sudo yum -y install vim-nerdtree
+if [[ "$os_VENDOR" =~ (Fedora) ]]; then
+  sudo yum -y install vim-nerdtree
+else
+  if [ ! -f ~/.vim/plugin/NERD_tree.vim ]; then
+    wget https://github.com/scrooloose/nerdtree/archive/master.zip
+    unzip master.zip
+    cp nerdtree-master/* ~/.vim/ -r
+    rm nerdtree-master -rf
+    rm master.zip
+  fi
+fi
 
 # tagbar
 if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
   wget https://github.com/majutsushi/tagbar/archive/master.zip
   unzip master.zip
-  mv tagbar-master/* ~/.vim/
+  cp tagbar-master/* ~/.vim/ -r
   rm tagbar-master -rf
   rm master.zip
 fi
