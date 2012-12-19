@@ -108,8 +108,10 @@ set +o xtrace
 if [[ "$os_VENDOR" =~ (CentOS) ]]; then
   sudo yum -y install vim ctags
 elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
-  sudo yum -y install vim
+  sudo yum -y install vim ctags
 elif [[ "$os_VENDOR" =~ (LinuxMint) ]]; then
+  sudo apt-get -y install vim exuberant-ctags
+elif [[ "$os_VENDOR" =~ (Ubuntu) ]]; then
   sudo apt-get -y install vim exuberant-ctags
 elif [[ "$os_VENDOR" =~ (Debian) ]]; then
   sudo apt-get -y install vim exuberant-ctags
