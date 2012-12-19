@@ -103,7 +103,7 @@ echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME"
 # install vim
 if [[ "$os_VENDOR" =~ (CentOS) ]]; then
   sudo yum -y install vim
-if [[ "$os_VENDOR" =~ (Fedora) ]]; then
+elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
   sudo yum -y install vim
 elif [[ "$os_VENDOR" =~ (LinuxMint) ]]; then
   sudo apt-get -y install vim
