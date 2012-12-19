@@ -1,20 +1,150 @@
 #!/bin/bash
 
+# Determine OS Vendor, Release and Update
+# Tested with OS/X, Ubuntu, RedHat, CentOS, Fedora
+# Returns results in global variables:
+# os_VENDOR - vendor name
+# os_RELEASE - release
+# os_UPDATE - update
+# os_PACKAGE - package type
+# os_CODENAME - vendor's codename for release
+# GetOSVersion
+GetOSVersion() {
+    # Figure out which vendor we are
+    if [[ -n "`which sw_vers 2>/dev/null`" ]]; then
+        # OS/X
+        os_VENDOR=`sw_vers -productName`
+        os_RELEASE=`sw_vers -productVersion`
+        os_UPDATE=${os_RELEASE##*.}
+        os_RELEASE=${os_RELEASE%.*}
+        os_PACKAGE=""
+        if [[ "$os_RELEASE" =~ "10.7" ]]; then
+            os_CODENAME="lion"
+        elif [[ "$os_RELEASE" =~ "10.6" ]]; then
+            os_CODENAME="snow leopard"
+        elif [[ "$os_RELEASE" =~ "10.5" ]]; then
+            os_CODENAME="leopard"
+        elif [[ "$os_RELEASE" =~ "10.4" ]]; then
+            os_CODENAME="tiger"
+        elif [[ "$os_RELEASE" =~ "10.3" ]]; then
+            os_CODENAME="panther"
+        else
+            os_CODENAME=""
+        fi
+    elif [[ -x $(which lsb_release 2>/dev/null) ]]; then
+        os_VENDOR=$(lsb_release -i -s)
+        os_RELEASE=$(lsb_release -r -s)
+        os_UPDATE=""
+        if [[ "Debian,Ubuntu" =~ $os_VENDOR ]]; then
+            os_PACKAGE="deb"
+        elif [[ "SUSE LINUX" =~ $os_VENDOR ]]; then
+            lsb_release -d -s | grep -q openSUSE
+            if [[ $? -eq 0 ]]; then
+                os_VENDOR="openSUSE"
+            fi
+            os_PACKAGE="rpm"
+        else
+            os_PACKAGE="rpm"
+        fi
+        os_CODENAME=$(lsb_release -c -s)
+    elif [[ -r /etc/redhat-release ]]; then
+        # Red Hat Enterprise Linux Server release 5.5 (Tikanga)
+        # CentOS release 5.5 (Final)
+        # CentOS Linux release 6.0 (Final)
+        # Fedora release 16 (Verne)
+        os_CODENAME=""
+        for r in "Red Hat" CentOS Fedora; do
+            os_VENDOR=$r
+            if [[ -n "`grep \"$r\" /etc/redhat-release`" ]]; then
+                ver=`sed -e 's/^.* \(.*\) (\(.*\)).*$/\1\|\2/' /etc/redhat-release`
+                os_CODENAME=${ver#*|}
+                os_RELEASE=${ver%|*}
+                os_UPDATE=${os_RELEASE##*.}
+                os_RELEASE=${os_RELEASE%.*}
+                break
+            fi
+            os_VENDOR=""
+        done
+        os_PACKAGE="rpm"
+    elif [[ -r /etc/SuSE-release ]]; then
+        for r in openSUSE "SUSE Linux"; do
+            if [[ "$r" = "SUSE Linux" ]]; then
+                os_VENDOR="SUSE LINUX"
+            else
+                os_VENDOR=$r
+            fi
+
+            if [[ -n "`grep \"$r\" /etc/SuSE-release`" ]]; then
+                os_CODENAME=`grep "CODENAME = " /etc/SuSE-release | sed 's:.* = ::g'`
+                os_RELEASE=`grep "VERSION = " /etc/SuSE-release | sed 's:.* = ::g'`
+                os_UPDATE=`grep "PATCHLEVEL = " /etc/SuSE-release | sed 's:.* = ::g'`
+                break
+            fi
+            os_VENDOR=""
+        done
+        os_PACKAGE="rpm"
+    fi
+    export os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
+}
+
 if [ ! -d ~/.vim ]; then
   mkdir ~/.vim
 fi
+
+GetOSVersion
+echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME"
 
 # nerdtree
 sudo yum -y install vim-nerdtree
 
 # tagbar
-wget https://github.com/majutsushi/tagbar/archive/master.zip
-unzip master.zip
-mv tagbar-master/* ~/.vim/
-rm tagbar-master -rf
-rm master.zip
+if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
+  wget https://github.com/majutsushi/tagbar/archive/master.zip
+  unzip master.zip
+  mv tagbar-master/* ~/.vim/
+  rm tagbar-master -rf
+  rm master.zip
+fi
 
 # matchit
-cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
-cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
+if [ ! -f ~/.vim/plugin/matchit.vim ]; then
+  cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
+  cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
+fi
 
+# ~/.vimrc
+cat > ~/.vimrc <<EOF
+set fileencodings=ucs-bom,utf-8,gbk,default,latin1
+
+set expandtab
+set tabstop=2
+set shiftwidth=2
+set autoindent
+set smartindent
+
+if has("autocmd")
+  " Drupal *.module and *.install files.
+  augroup module
+    autocmd BufRead,BufNewFile *.module set filetype=php
+    autocmd BufRead,BufNewFile *.install set filetype=php
+    autocmd BufRead,BufNewFile *.test set filetype=php
+    autocmd BufRead,BufNewFile *.inc set filetype=php
+    autocmd BufRead,BufNewFile *.profile set filetype=php
+    autocmd BufRead,BufNewFile *.view set filetype=php
+  augroup END
+endif
+syntax on
+
+map <F2> :NERDTreeToggle<CR>
+nnoremap <silent> <F8> :TagbarToggle<CR>
+
+" Turn on Line numbers
+set number
+
+let php_parent_error_close = 1
+let php_parent_error_open = 1
+let php_folding = 1
+
+" highlight all its matches
+set hlsearch
+EOF
