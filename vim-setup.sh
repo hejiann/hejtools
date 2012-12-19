@@ -1,14 +1,24 @@
 #!/bin/bash
+#
+# vim-setup.sh - install and setup vim
+# author: hejiannn <hejia3n@gmail.com>
+#
+# plugins installed: nerdtree, tagbar, matchit, python-mode, jedi-vim
+#
+# key maps:
+# F2 : NERDTreeToggle
+# F8 : TagbarToggle
+#
 
+# GetOSVersion
 # Determine OS Vendor, Release and Update
-# Tested with OS/X, Ubuntu, RedHat, CentOS, Fedora
+# Tested with RedHat, CentOS, Fedora, Mint, Ubuntu, Debian, OS/X
 # Returns results in global variables:
 # os_VENDOR - vendor name
 # os_RELEASE - release
 # os_UPDATE - update
 # os_PACKAGE - package type
 # os_CODENAME - vendor's codename for release
-# GetOSVersion
 GetOSVersion() {
     # Figure out which vendor we are
     if [[ -n "`which sw_vers 2>/dev/null`" ]]; then
@@ -90,6 +100,16 @@ GetOSVersion() {
 GetOSVersion
 echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME"
 
+# install vim
+if [[ "$os_VENDOR" =~ (Fedora) ]]; then
+  sudo yum -y install vim
+elif [[ "$os_VENDOR" =~ (LinuxMint) ]]; then
+  sudo apt-get -y install vim
+elif [[ "$os_VENDOR" =~ (Debian) ]]; then
+  sudo apt-get -y install vim
+fi
+
+# create ~/.vim
 if [ ! -d ~/.vim ]; then
   mkdir ~/.vim
 fi
@@ -120,6 +140,24 @@ fi
 if [ ! -f ~/.vim/plugin/matchit.vim ]; then
   cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
   cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
+fi
+
+# python-mode
+if [ ! -f ~/.vim/plugin/pymode.vim ]; then
+  wget https://github.com/klen/python-mode/archive/master.zip
+  unzip master.zip
+  cp python-mode-master/* ~/.vim/ -r
+  rm python-mode-master -rf
+  rm master.zip
+fi
+
+# jedi-vim
+if [ ! -f ~/.vim/plugin/jedi.vim ]; then
+  wget https://github.com/davidhalter/jedi-vim/archive/master.zip
+  unzip master.zip
+  cp jedi-vim-master/* ~/.vim/ -r
+  rm jedi-vim-master -rf
+  rm master.zip
 fi
 
 # ~/.vimrc
