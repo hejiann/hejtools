@@ -101,12 +101,14 @@ GetOSVersion
 echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_CODENAME"
 
 # install vim
+if [[ "$os_VENDOR" =~ (CentOS) ]]; then
+  sudo yum -y install vim
 if [[ "$os_VENDOR" =~ (Fedora) ]]; then
   sudo yum -y install vim
 elif [[ "$os_VENDOR" =~ (LinuxMint) ]]; then
   sudo apt-get -y install vim
 elif [[ "$os_VENDOR" =~ (Debian) ]]; then
-  sudo apt-get -y install vim
+  sudo apt-get -y install vim exuberant-ctags
 fi
 
 # create ~/.vim
@@ -119,7 +121,7 @@ if [[ "$os_VENDOR" =~ (Fedora) ]]; then
   sudo yum -y install vim-nerdtree
 else
   if [ ! -f ~/.vim/plugin/NERD_tree.vim ]; then
-    wget https://github.com/scrooloose/nerdtree/archive/master.zip
+    wget https://github.com/scrooloose/nerdtree/archive/master.zip -O master.zip
     unzip master.zip
     cp nerdtree-master/* ~/.vim/ -r
     rm nerdtree-master -rf
@@ -129,7 +131,7 @@ fi
 
 # tagbar
 if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
-  wget https://github.com/majutsushi/tagbar/archive/master.zip
+  wget https://github.com/majutsushi/tagbar/archive/master.zip -O master.zip
   unzip master.zip
   cp tagbar-master/* ~/.vim/ -r
   rm tagbar-master -rf
@@ -144,7 +146,7 @@ fi
 
 # python-mode
 if [ ! -f ~/.vim/plugin/pymode.vim ]; then
-  wget https://github.com/klen/python-mode/archive/master.zip
+  wget https://github.com/klen/python-mode/archive/master.zip -O master.zip
   unzip master.zip
   cp python-mode-master/* ~/.vim/ -r
   rm python-mode-master -rf
@@ -153,7 +155,7 @@ fi
 
 # jedi-vim
 if [ ! -f ~/.vim/plugin/jedi.vim ]; then
-  wget https://github.com/davidhalter/jedi-vim/archive/master.zip
+  wget https://github.com/davidhalter/jedi-vim/archive/master.zip -O master.zip
   unzip master.zip
   cp jedi-vim-master/* ~/.vim/ -r
   rm jedi-vim-master -rf
