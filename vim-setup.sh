@@ -142,7 +142,7 @@ function install_package() {
 
         apt_get install "$@"
     elif is_arch; then
-      yaourt -S "$@"
+      pacman_install "$@"
     elif is_suse; then
         zypper_install "$@"
     else
@@ -218,6 +218,16 @@ function apt_get() {
         http_proxy=$http_proxy https_proxy=$https_proxy \
         no_proxy=$no_proxy \
         apt-get --option "Dpkg::Options::=--force-confold" --assume-yes "$@"
+}
+# Wrapper for ``pacman``
+# yaourt -S package [package ...]
+function pacman_install() {
+    [[ "$OFFLINE" = "True" || -z "$@" ]] && return
+    local sudo="sudo"
+    [[ "$(id -u)" = "0" ]] && sudo="env"
+    $sudo http_proxy=$http_proxy https_proxy=$https_proxy \
+        no_proxy=$no_proxy \
+        yaourt -Sy "$@"
 }
 
 # zypper wrapper to set arguments correctly
