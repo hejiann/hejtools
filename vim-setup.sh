@@ -159,7 +159,7 @@ function is_fedora {
 # Distro-agnostic package installer
 # install_package package [package ...]
 function install_package() {
-    if is_ubuntu; then
+    if is_debian; then
         [[ "$NO_UPDATE_REPOS" = "True" ]] || apt_get update
         NO_UPDATE_REPOS=True
 
@@ -176,8 +176,8 @@ function install_package() {
 # Determine if current distribution is an Ubuntu-based distribution.
 # It will also detect non-Ubuntu but Debian-based distros; this is not an issue
 # since Debian and Ubuntu should be compatible.
-# is_ubuntu
-function is_ubuntu {
+# is_debian
+function is_debian {
     if [[ -z "$os_PACKAGE" ]]; then
         GetOSVersion
     fi
@@ -264,8 +264,9 @@ fi
 XTRACE=$(set +o | grep xtrace)
 set +o xtrace
 
-# Install vim
+echo "Install vim"
 is_package_installed vim || install_package vim
+echo "Install ctags"
 if [[ "$os_VENDOR" =~ (CentOS) ]]; then
   is_package_installed ctags || install_package ctags
 elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
@@ -278,16 +279,16 @@ elif [[ "$os_VENDOR" =~ (Debian) ]]; then
   is_package_installed exuberant-ctags || install_package exuberant-ctags
 fi
 
-# Create ~/.vim directory
 if [ ! -d ~/.vim ]; then
+  echo "Create ~/.vim directory"
   mkdir ~/.vim
 fi
 
-# Install nerdtree plugin
 if [[ "$os_VENDOR" =~ (Fedora) ]]; then
   is_package_installed vim-nerdtree || install_package vim-nerdtree
 else
   if [ ! -f ~/.vim/plugin/NERD_tree.vim ]; then
+    echo "Install nerdtree plugin"
     wget https://github.com/scrooloose/nerdtree/archive/master.zip -O master.zip
     unzip master.zip
     cp nerdtree-master/* ~/.vim/ -r
@@ -296,8 +297,8 @@ else
   fi
 fi
 
-# Install tagbar plugin
 if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
+  echo "Install tagbar plugin"
   wget https://github.com/majutsushi/tagbar/archive/master.zip -O master.zip
   unzip master.zip
   cp tagbar-master/* ~/.vim/ -r
@@ -305,8 +306,8 @@ if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
   rm master.zip
 fi
 
-# Install matchit plugin
 if [ ! -f ~/.vim/plugin/matchit.vim ]; then
+  echo "Install matchit plugin"
   if [ -d /usr/share/vim/vim73 ]; then
     cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
     cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
@@ -318,8 +319,8 @@ if [ ! -f ~/.vim/plugin/matchit.vim ]; then
   fi
 fi
 
-# Install python-mode plugin
 if [ ! -f ~/.vim/plugin/pymode.vim ]; then
+  echo "Install python-mode plugin"
   wget https://github.com/klen/python-mode/archive/master.zip -O master.zip
   unzip master.zip
   cp python-mode-master/* ~/.vim/ -r
@@ -327,8 +328,8 @@ if [ ! -f ~/.vim/plugin/pymode.vim ]; then
   rm master.zip
 fi
 
-# Install jedi-vim plugin
 if [ ! -f ~/.vim/plugin/jedi.vim ]; then
+  echo "Install jedi-vim plugin"
   wget https://github.com/davidhalter/jedi-vim/archive/master.zip -O master.zip
   unzip master.zip
   cp jedi-vim-master/* ~/.vim/ -r
@@ -336,8 +337,9 @@ if [ ! -f ~/.vim/plugin/jedi.vim ]; then
   rm master.zip
 fi
 
-# Customize ~/.vimrc
-cat > ~/.vimrc <<EOF
+cat > ~/.vim/vimrc <<EOF
+" This file is created by vim-setup.sh
+
 " Add gbk support
 set fileencodings=ucs-bom,utf-8,gbk,default,latin1
 
@@ -345,7 +347,8 @@ set tabstop=2
 set shiftwidth=2
 set expandtab
 
-" BEGIN coding standards specified in PEP 7 & 8
+"======================================
+" coding standards specified in PEP 7 & 8
 
 " Number of spaces that a pre-existing tab is equal to.
 " For the amount of space used for a new tab use shiftwidth.
@@ -398,7 +401,7 @@ au BufRead,BufNewFile *.c,*.h set formatoptions-=c formatoptions-=o formatoption
 " C: yes
 au BufNewFile *.py,*.pyw,*.c,*.h set fileformat=unix
 
-" END coding standards specified in PEP 7 & 8
+"======================================
 
 set autoindent
 set smartindent
@@ -429,6 +432,10 @@ let php_folding = 1
 " highlight all its matches
 set hlsearch
 EOF
+if ! egrep -q '^so ~/.vim/vimrc$' ~/.vimrc; then
+  echo "Customize ~/.vimrc"
+  echo 'so ~/.vim/vimrc' >> ~/.vimrc
+fi
 
 # Restore xtrace
 $XTRACE
