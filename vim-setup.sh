@@ -76,6 +76,14 @@ GetOSVersion() {
             os_VENDOR=""
         done
         os_PACKAGE="rpm"
+    elif [[ -r /etc/issue ]]; then
+      if grep -q "Debian" /etc/issue; then
+        os_VENDOR="Debian"
+        os_PACKAGE="deb"
+      elif grep -q "Arch" /etc/issue; then
+        os_VENDOR="Arch"
+        os_PACKAGE="pacman"
+      fi
     elif [[ -r /etc/SuSE-release ]]; then
         for r in openSUSE "SUSE Linux"; do
             if [[ "$r" = "SUSE Linux" ]]; then
@@ -97,32 +105,6 @@ GetOSVersion() {
     export os_VENDOR os_RELEASE os_UPDATE os_PACKAGE os_CODENAME
 }
 
-# Translate the OS version values into common nomenclature
-# Sets ``DISTRO`` from the ``os_*`` values
-function GetDistro() {
-    GetOSVersion
-    if [[ "$os_VENDOR" =~ (Ubuntu) ]]; then
-        # 'Everyone' refers to Ubuntu releases by the code name adjective
-        DISTRO=$os_CODENAME
-    elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
-        # For Fedora, just use 'f' and the release
-        DISTRO="f$os_RELEASE"
-    elif [[ "$os_VENDOR" =~ (openSUSE) ]]; then
-        DISTRO="opensuse-$os_RELEASE"
-    elif [[ "$os_VENDOR" =~ (SUSE LINUX) ]]; then
-        # For SLE, also use the service pack
-        if [[ -z "$os_UPDATE" ]]; then
-            DISTRO="sle${os_RELEASE}"
-        else
-            DISTRO="sle${os_RELEASE}sp${os_UPDATE}"
-        fi
-    else
-        # Catch-all for now is Vendor + Release + Update
-        DISTRO="$os_VENDOR-$os_RELEASE.$os_UPDATE"
-    fi
-    export DISTRO
-}
-
 # Distro-agnostic function to tell if a package is installed
 # is_package_installed package [package ...]
 function is_package_installed() {
@@ -140,8 +122,32 @@ function is_package_installed() {
     elif [[ "$os_PACKAGE" = "rpm" ]]; then
         rpm --quiet -q "$@"
         return $?
+    elif [[ "$os_PACKAGE" = "pacman" ]]; then
+      # TODO: check if a package is already installed
+      return 0
     else
-        exit_distro_not_supported "finding if a package is installed"
+      echo "Support for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME is incomplete."
+      exit 1
+    fi
+}
+
+# Distro-agnostic package installer
+# install_package package [package ...]
+function install_package() {
+    if is_fedora; then
+        yum_install "$@"
+    elif is_debian; then
+        [[ "$NO_UPDATE_REPOS" = "True" ]] || apt_get update
+        NO_UPDATE_REPOS=True
+
+        apt_get install "$@"
+    elif is_arch; then
+      yaourt -S "$@"
+    elif is_suse; then
+        zypper_install "$@"
+    else
+      echo "Support for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME is incomplete."
+      exit 1
     fi
 }
 
@@ -156,23 +162,6 @@ function is_fedora {
     [ "$os_VENDOR" = "Fedora" ] || [ "$os_VENDOR" = "Red Hat" ] || [ "$os_VENDOR" = "CentOS" ]
 }
 
-# Distro-agnostic package installer
-# install_package package [package ...]
-function install_package() {
-    if is_debian; then
-        [[ "$NO_UPDATE_REPOS" = "True" ]] || apt_get update
-        NO_UPDATE_REPOS=True
-
-        apt_get install "$@"
-    elif is_fedora; then
-        yum_install "$@"
-    elif is_suse; then
-        zypper_install "$@"
-    else
-        exit_distro_not_supported "installing packages"
-    fi
-}
-
 # Determine if current distribution is an Ubuntu-based distribution.
 # It will also detect non-Ubuntu but Debian-based distros; this is not an issue
 # since Debian and Ubuntu should be compatible.
@@ -185,6 +174,16 @@ function is_debian {
     [ "$os_PACKAGE" = "deb" ]
 }
 
+# Determine if current distribution is a Arch distribution.
+# is_arch
+function is_arch {
+    if [[ -z "$os_VENDOR" ]]; then
+        GetOSVersion
+    fi
+
+    [ "$os_PACKAGE" = "pacman" ]
+}
+
 # Determine if current distribution is a SUSE-based distribution
 # (openSUSE, SLE).
 # is_suse
@@ -194,22 +193,6 @@ function is_suse {
     fi
 
     [ "$os_VENDOR" = "openSUSE" ] || [ "$os_VENDOR" = "SUSE LINUX" ]
-}
-
-# Exit after outputting a message about the distribution not being supported.
-# exit_distro_not_supported [optional-string-telling-what-is-missing]
-function exit_distro_not_supported {
-    if [[ -z "$DISTRO" ]]; then
-        GetDistro
-    fi
-
-    if [ $# -gt 0 ]; then
-        echo "Support for $DISTRO is incomplete: no support for $@"
-    else
-        echo "Support for $DISTRO is incomplete."
-    fi
-
-    exit 1
 }
 
 # Wrapper for ``yum`` to set proxy environment variables
@@ -247,7 +230,7 @@ function zypper_install() {
         zypper --non-interactive install --auto-agree-with-licenses "$@"
 }
 
-GetDistro
+GetOSVersion
 echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME $DISTRO"
 
 # root access
@@ -255,18 +238,26 @@ echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME $
 if [[ $EUID -eq 0 ]]; then
   echo "You are running this script as root."
   is_package_installed sudo || install_package sudo
-  # TODO: who am i
+  USER=$(who am i | awk '{ print $1 }')
+  if ! grep -q "$USER ALL=(ALL:ALL) ALL" /etc/sudoers; then
+    echo "Give $USER sudo priviledge."
+    echo "$USER ALL=(ALL:ALL) ALL" >> /etc/sudoers
+  fi
+  echo "Please re-run desktop-setup.sh as normal user."
+  exit 1
 else
-  is_package_installed sudo || die "Sudo is required. Re-run vim-setup.sh as root to setup sudo."
+  if ! is_package_installed sudo; then
+    echo "Sudo is required. Re-run vim-setup.sh as su to setup sudo."
+    exit 1
+  fi
 fi
 
 # Save trace setting
 XTRACE=$(set +o | grep xtrace)
 set +o xtrace
 
-echo "Install vim"
+echo "Check and install vim & ctagas"
 is_package_installed vim || install_package vim
-echo "Install ctags"
 if [[ "$os_VENDOR" =~ (CentOS) ]]; then
   is_package_installed ctags || install_package ctags
 elif [[ "$os_VENDOR" =~ (Fedora) ]]; then
