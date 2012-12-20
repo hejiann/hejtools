@@ -123,8 +123,8 @@ function is_package_installed() {
         rpm --quiet -q "$@"
         return $?
     elif [[ "$os_PACKAGE" = "pacman" ]]; then
-      # TODO: check if a package is already installed
-      return 0
+      pacman -Q "$@" > /dev/null
+      return $?
     else
       echo "Support for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME is incomplete."
       exit 1
