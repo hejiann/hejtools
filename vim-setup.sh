@@ -341,9 +341,35 @@ fi
 cat > ~/.vim/vimrc <<EOF
 " This file is created by vim-setup.sh
 
-set tabstop=2
-set shiftwidth=2
 set expandtab
+set shiftwidth=4
+set softtabstop=4
+set tabstop=4
+
+"======================================
+" Drupal Coding Standards
+
+fu Drupal_style()
+  set filetype=php
+  set expandtab
+  set tabstop=2
+  set shiftwidth=2
+  set autoindent
+  set smartindent
+endf
+
+if has("autocmd")
+  " Drupal *.module and *.install files.
+  augroup module
+    autocmd BufRead,BufNewFile *.module call Drupal_style
+    autocmd BufRead,BufNewFile *.install call Drupal_style
+    autocmd BufRead,BufNewFile *.test call Drupal_style
+    autocmd BufRead,BufNewFile *.inc call Drupal_style
+    autocmd BufRead,BufNewFile *.profile call Drupal_style
+    autocmd BufRead,BufNewFile *.view call Drupal_style
+  augroup END
+endif
+syntax on
 
 "======================================
 " coding standards specified in PEP 7 & 8
@@ -406,12 +432,9 @@ set encoding=utf-8
 
 " For full syntax highlighting
 let python_highlight_all=1
-syntax on
 
 " Automatically indent based on file type
 filetype indent on
-" Keep indentation level from previous line
-set autoindent
 " Folding based on indentation
 " set foldmethod=indent
 
@@ -422,17 +445,6 @@ nnoremap <silent> <F8> :TagbarToggle<CR>
 
 "======================================
 
-if has("autocmd")
-  " Drupal *.module and *.install files.
-  augroup module
-    autocmd BufRead,BufNewFile *.module set filetype=php
-    autocmd BufRead,BufNewFile *.install set filetype=php
-    autocmd BufRead,BufNewFile *.test set filetype=php
-    autocmd BufRead,BufNewFile *.inc set filetype=php
-    autocmd BufRead,BufNewFile *.profile set filetype=php
-    autocmd BufRead,BufNewFile *.view set filetype=php
-  augroup END
-endif
 
 " Turn on Line numbers
 set number
