@@ -340,9 +340,6 @@ fi
 cat > ~/.vim/vimrc <<EOF
 " This file is created by vim-setup.sh
 
-" Add gbk support
-set fileencodings=ucs-bom,utf-8,gbk,default,latin1
-
 set tabstop=2
 set shiftwidth=2
 set expandtab
@@ -364,7 +361,7 @@ fu Select_c_style()
     if search('^\t', 'n', 150)
         set shiftwidth=8
         set noexpandtab
-    el 
+    el
         set shiftwidth=4
         set expandtab
     en
@@ -403,8 +400,26 @@ au BufNewFile *.py,*.pyw,*.c,*.h set fileformat=unix
 
 "======================================
 
+set fileencodings=ucs-bom,utf-8,gbk,default,latin1
+set encoding=utf-8
+
+" For full syntax highlighting
+let python_highlight_all=1
+syntax on
+
+" Automatically indent based on file type
+filetype indent on
+" Keep indentation level from previous line
 set autoindent
-set smartindent
+" Folding based on indentation
+" set foldmethod=indent
+
+"======================================
+
+map <F2> :NERDTreeToggle<CR>
+nnoremap <silent> <F8> :TagbarToggle<CR>
+
+"======================================
 
 if has("autocmd")
   " Drupal *.module and *.install files.
@@ -417,10 +432,6 @@ if has("autocmd")
     autocmd BufRead,BufNewFile *.view set filetype=php
   augroup END
 endif
-syntax on
-
-map <F2> :NERDTreeToggle<CR>
-nnoremap <silent> <F8> :TagbarToggle<CR>
 
 " Turn on Line numbers
 set number
