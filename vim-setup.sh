@@ -320,6 +320,15 @@ if [ ! -f ~/.vim/plugin/matchit.vim ]; then
   fi
 fi
 
+if [ ! -f ~/.vim/plugin/git.vim ]; then
+  echo "Install git-vim plugin"
+  wget https://github.com/motemen/git-vim/archive/master.zip -O master.zip
+  unzip master.zip
+  cp git-vim-master/* ~/.vim/ -r
+  rm git-vim-master -rf
+  rm master.zip
+fi
+
 if [ ! -f ~/.vim/plugin/pymode.vim ]; then
   echo "Install python-mode plugin"
   wget https://github.com/klen/python-mode/archive/master.zip -O master.zip
