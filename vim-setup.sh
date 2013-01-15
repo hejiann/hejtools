@@ -123,11 +123,11 @@ function is_package_installed() {
         rpm --quiet -q "$@"
         return $?
     elif [[ "$os_PACKAGE" = "pacman" ]]; then
-      pacman -Q "$@" > /dev/null
-      return $?
+        pacman -Q "$@" > /dev/null
+        return $?
     else
-      echo "Support for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME is incomplete."
-      exit 1
+        echo "Support for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME is incomplete."
+        exit 1
     fi
 }
 
@@ -142,12 +142,12 @@ function install_package() {
 
         apt_get install "$@"
     elif is_arch; then
-      pacman_install "$@"
+        pacman_install "$@"
     elif is_suse; then
         zypper_install "$@"
     else
-      echo "Support for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME is incomplete."
-      exit 1
+        echo "Support for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME is incomplete."
+        exit 1
     fi
 }
 
@@ -246,20 +246,20 @@ echo "vim setup for $os_VENDOR $os_RELEASE $os_UPDATE $os_PACKAGE $os_CODENAME $
 # root access
 # vim-setup.sh is designed to be run as a non-root user but need sudo priviledge to install packages.
 if [[ $EUID -eq 0 ]]; then
-  echo "You are running this script as root."
-  is_package_installed sudo || install_package sudo
-  USER=$(who am i | awk '{ print $1 }')
-  if ! grep -q "$USER ALL=(ALL:ALL) ALL" /etc/sudoers; then
-    echo "Give $USER sudo priviledge."
-    echo "$USER ALL=(ALL:ALL) ALL" >> /etc/sudoers
-  fi
-  echo "Please re-run desktop-setup.sh as normal user."
-  exit 1
-else
-  if ! is_package_installed sudo; then
-    echo "Sudo is required. Re-run vim-setup.sh as su to setup sudo."
+    echo "You are running this script as root."
+    is_package_installed sudo || install_package sudo
+    USER=$(who am i | awk '{ print $1 }')
+    if ! grep -q "$USER ALL=(ALL:ALL) ALL" /etc/sudoers; then
+        echo "Give $USER sudo priviledge."
+        echo "$USER ALL=(ALL:ALL) ALL" >> /etc/sudoers
+    fi
+    echo "Please re-run desktop-setup.sh as normal user."
     exit 1
-  fi
+else
+    if ! is_package_installed sudo; then
+        echo "Sudo is required. Re-run vim-setup.sh as su to setup sudo."
+        exit 1
+    fi
 fi
 
 # Save trace setting
@@ -281,8 +281,8 @@ elif [[ "$os_VENDOR" =~ (Debian) ]]; then
 fi
 
 if [ ! -d ~/.vim ]; then
-  echo "Create ~/.vim directory"
-  mkdir ~/.vim
+    echo "Create ~/.vim directory"
+    mkdir ~/.vim
 fi
 
 if [[ "$os_VENDOR" =~ (Fedora) ]]; then
@@ -299,25 +299,30 @@ else
 fi
 
 if [ ! -f ~/.vim/plugin/tagbar.vim ]; then
-  echo "Install tagbar plugin"
-  wget https://github.com/majutsushi/tagbar/archive/master.zip -O master.zip
-  unzip master.zip
-  cp tagbar-master/* ~/.vim/ -r
-  rm tagbar-master -rf
-  rm master.zip
+    echo "Install tagbar plugin"
+    wget https://github.com/majutsushi/tagbar/archive/master.zip -O master.zip
+    unzip master.zip
+    cp tagbar-master/* ~/.vim/ -r
+    rm tagbar-master -rf
+    rm master.zip
+fi
+
+if [ ! -f /usr/include/tags ]; then
+    echo "Creating /usr/include/tags"
+    sudo ctags -R -f /usr/include/tags /usr/include
 fi
 
 if [ ! -f ~/.vim/plugin/matchit.vim ]; then
-  echo "Install matchit plugin"
-  if [ -d /usr/share/vim/vim73 ]; then
-    cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
-    cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
-  elif [ -d /usr/share/vim/vim72 ]; then
-    cp /usr/share/vim/vim72/macros/matchit.vim ~/.vim/plugin/
-    cp /usr/share/vim/vim72/macros/matchit.txt ~/.vim/doc/
-  else
-    echo "ERROR: Could not find the vim directory !!!"
-  fi
+    echo "Install matchit plugin"
+    if [ -d /usr/share/vim/vim73 ]; then
+        cp /usr/share/vim/vim73/macros/matchit.vim ~/.vim/plugin/
+        cp /usr/share/vim/vim73/macros/matchit.txt ~/.vim/doc/
+    elif [ -d /usr/share/vim/vim72 ]; then
+        cp /usr/share/vim/vim72/macros/matchit.vim ~/.vim/plugin/
+        cp /usr/share/vim/vim72/macros/matchit.txt ~/.vim/doc/
+    else
+        echo "ERROR: Could not find the vim directory !!!"
+    fi
 fi
 
 if [ ! -f ~/.vim/plugin/git.vim ]; then
@@ -454,7 +459,6 @@ nnoremap <silent> <F8> :TagbarToggle<CR>
 
 "======================================
 
-
 " Turn on Line numbers
 set number
 
@@ -464,10 +468,12 @@ let php_folding = 1
 
 " highlight all its matches
 set hlsearch
+
+set tags=./tags,./TAGS,tags,TAGS,/usr/include/tags
 EOF
 if ! egrep -q '^so ~/.vim/vimrc$' ~/.vimrc; then
-  echo "Customize ~/.vimrc"
-  echo 'so ~/.vim/vimrc' >> ~/.vimrc
+    echo "Customize ~/.vimrc"
+    echo 'so ~/.vim/vimrc' >> ~/.vimrc
 fi
 
 # Restore xtrace
