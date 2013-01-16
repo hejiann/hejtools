@@ -459,6 +459,9 @@ nnoremap <silent> <F8> :TagbarToggle<CR>
 
 "======================================
 
+" qml file
+autocmd BufRead,BufNewFile *.qml set filetype=javascript
+
 " Turn on Line numbers
 set number
 
