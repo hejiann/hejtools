@@ -472,6 +472,11 @@ let php_folding = 1
 " highlight all its matches
 set hlsearch
 
+" brackets close
+:inoremap ( ()<Esc>i
+:inoremap { {}<Esc>i
+:inoremap [ []<Esc>i
+
 set tags=./tags,./TAGS,tags,TAGS,/usr/include/tags
 EOF
 if ! egrep -q '^so ~/.vim/vimrc$' ~/.vimrc; then
