@@ -325,6 +325,15 @@ if [ ! -f ~/.vim/plugin/matchit.vim ]; then
     fi
 fi
 
+if [ ! -f ~/.vim/colors/github.vim ]; then
+  echo "Install github color scheme"
+  wget https://github.com/endel/vim-github-colorscheme/archive/master.zip -O master.zip
+  unzip master.zip
+  cp vim-github-colorscheme-master/* ~/.vim/ -r
+  rm vim-github-colorscheme-master -rf
+  rm master.zip
+fi
+
 if [ ! -f ~/.vim/plugin/git.vim ]; then
   echo "Install git-vim plugin"
   wget https://github.com/motemen/git-vim/archive/master.zip -O master.zip
@@ -459,8 +468,7 @@ nnoremap <silent> <F8> :TagbarToggle<CR>
 
 "======================================
 
-" qml file
-autocmd BufRead,BufNewFile *.qml set filetype=javascript
+:colo github
 
 " Turn on Line numbers
 set number
@@ -478,6 +486,9 @@ set hlsearch
 :inoremap [ []<Esc>i
 
 set tags=./tags,./TAGS,tags,TAGS,/usr/include/tags
+
+" qml file
+autocmd BufRead,BufNewFile *.qml set filetype=javascript
 EOF
 if ! egrep -q '^so ~/.vim/vimrc$' ~/.vimrc; then
     echo "Customize ~/.vimrc"
